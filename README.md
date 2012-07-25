@@ -6,4 +6,4 @@ To run -
 To setup auto-reload -
 
 >npm install supervisor -g
->supervisor app.js
+>supervisor server/app.js
