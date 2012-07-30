@@ -1,45 +1,45 @@
-define(function(_0) {
+define([ './jquery-1.7.2.min' ], function(__jQuery) {
+	var URL = window.URL || window.webkitURL;
 
-	function WebcamFactory() {
+	function create(scale) {
+		return getUserMedia({
+			video : true
+		}).pipe(function(stream) {
+			return createFromStream(stream, scale);
+		}).promise();
 	}
 
-	WebcamFactory.prototype.create = function(scale, success, failure) {
-		this.getUserMedia({
-			video : true
-		}, function onSuccess(stream) {
-			success(this.createFromStream(scale, stream));
-		}.bind(this), function onFailure(e) {
-			console.error(e);
-			failure(e);
+	function createFromStream(stream, scale) {
+		return new jQuery.Deferred(function(deferred) {
+			var video = document.createElement("video");
+			var canvas = document.createElement("canvas");
+			video.src = URL.createObjectURL(stream);
+			// Since video.onloadedmetadata isn't firing for
+			// getUserMedia video,
+			// we have to fake it.
+			setTimeout(function() {
+				canvas.width = (video.width = video.videoWidth) * scale;
+				canvas.height = (video.height = video.videoHeight) * scale;
+				video.play();
+				deferred.resolve(new Webcam(video, canvas));
+			}, 50);
 		});
+	}
 
-	};
-
-	WebcamFactory.prototype.createFromStream = function(scale, stream) {
-		var video = document.createElement("video");
-		var canvas = document.createElement("canvas");
-		video.src = this.URL.createObjectURL(stream);
-		// Since video.onloadedmetadata isn't firing for getUserMedia video, we
-		// have to fake it.
-		setTimeout(function() {
-			canvas.width = (video.width = video.videoWidth) * scale;
-			canvas.height = (video.height = video.videoHeight) * scale;
-			video.play();
-		}, 50);
-		return new Webcam(video, canvas);
-	};
-
-	WebcamFactory.prototype.getUserMedia = function(options, success, failure) {
-		var getUserMedia = navigator.webkitGetUserMedia
-				|| navigator.getUserMedia;
-		if (!getUserMedia) {
-			failure("Unsupported");
-			return;
-		}
-		return getUserMedia.apply(navigator, arguments);
-	};
-
-	WebcamFactory.prototype.URL = window.URL || window.webkitURL;
+	function getUserMedia(options) {
+		return new jQuery.Deferred(function(deferred) {
+			var getUserMedia = navigator.webkitGetUserMedia || navigator.getUserMedia;
+			if (!getUserMedia) {
+				deferred.reject("getUserMedia unsupported");
+			} else {
+				getUserMedia.call(navigator, options, function onSuccess(stream) {
+					deferred.resolve(stream);
+				}, function onFailure(e) {
+					deferred.reject(e);
+				});
+			}
+		});
+	}
 
 	function Webcam(video, canvas) {
 		this.video = video;
@@ -47,23 +47,52 @@ define(function(_0) {
 	}
 
 	Webcam.prototype.snapshot = function() {
-		this.canvas.getContext("2d").drawImage(this.video, 0, 0,
-				this.canvas.width, this.canvas.height);
+		this.canvas.getContext("2d").drawImage(this.video, 0, 0, this.canvas.width,
+				this.canvas.height);
 	};
 
 	Webcam.prototype.toDataURL = function(format, quality) {
-		this.snapshot();
 		return this.canvas.toDataURL(format, quality);
 	};
 
+	Webcam.prototype.requestFrameDataURL = function(fps, count, format, quality) {
+		var filter = this.toDataURL.bind(this, format, quality);
+		return this.requestFrameNotifications(fps, count).pipe(filter, null, filter);
+	};
+
 	Webcam.prototype.getImageData = function() {
-		this.snapshot();
-		return this.canvas.getContext("2d").getImageData(0, 0,
-				this.canvas.width, this.canvas.height);
+		return this.canvas.getContext("2d").getImageData(0, 0, this.canvas.width,
+				this.canvas.height);
+	};
+
+	Webcam.prototype.putImageData = function(data) {
+		return this.canvas.getContext("2d").putImageData(data, 0, 0);
+	};
+
+	Webcam.prototype.requestFrameImageData = function(fps, count) {
+		var filter = this.getImageData.bind(this);
+		return this.requestFrameNotifications(fps, count).pipe(filter, null, filter);
+	};
+
+	Webcam.prototype.requestFrameNotifications = function(fps, count) {
+		var deferred = new jQuery.Deferred();
+		var ms = 1000 / fps;
+		var frame = 0;
+		var loop = function() {
+			if (++frame !== count) {
+				setTimeout(loop, ms);
+				this.snapshot();
+				deferred.notify(frame, count);
+			} else {
+				deferred.resolve(frame, count);
+			}
+		}.bind(this);
+		setTimeout(loop, ms);
+		return deferred;
 	};
 
 	return {
-		WebcamFactory : WebcamFactory,
+		create : create,
 		Webcam : Webcam
 	};
 });

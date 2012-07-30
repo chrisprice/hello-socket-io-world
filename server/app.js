@@ -38,7 +38,7 @@ setInterval(function() {
 	}, {
 		title : 'Frames',
 		valueProperty : 'frames',
-		paddingLeft : 25
+		paddingLeft : 10
 	}, {
 		title : 'FPS',
 		valueProperty : 'fps',
@@ -46,7 +46,7 @@ setInterval(function() {
 	}, {
 		title : 'Data',
 		valueProperty : 'data',
-		paddingLeft : 25
+		paddingLeft : 15
 	}, {
 		title : 'Rate',
 		valueProperty : 'rate',
@@ -76,8 +76,9 @@ io.sockets.on('connection', function(socket) {
 	socket.on('webcam', function(data) {
 		client.frames++;
 		client.fps++;
-		client.data += data.data.length;
-		client.rate += data.data.length;
+		var size = data.data && data.data.length;
+		client.data += size;
+		client.rate += size;
 		socket.broadcast.volatile.emit('webcam', {
 			data : data.data,
 			id : socket.id
