@@ -1,16 +1,16 @@
-define([ './jquery-1.7.2.min' ], function(__jQuery) {
+define([ './jquery' ], function($) {
 	var URL = window.URL || window.webkitURL;
 
-	function create(scale) {
+	function create(width, height) {
 		return getUserMedia({
 			video : true
 		}).pipe(function(stream) {
-			return createFromStream(stream, scale);
+			return createFromStream(stream, width, height);
 		}).promise();
 	}
 
-	function createFromStream(stream, scale) {
-		return new jQuery.Deferred(function(deferred) {
+	function createFromStream(stream, width, height) {
+		return new $.Deferred(function(deferred) {
 			var video = document.createElement("video");
 			var canvas = document.createElement("canvas");
 			video.src = URL.createObjectURL(stream);
@@ -18,8 +18,10 @@ define([ './jquery-1.7.2.min' ], function(__jQuery) {
 			// getUserMedia video,
 			// we have to fake it.
 			setTimeout(function() {
-				canvas.width = (video.width = video.videoWidth) * scale;
-				canvas.height = (video.height = video.videoHeight) * scale;
+				canvas.width = width;
+				canvas.height = height;
+				video.width = video.videoWidth;
+				video.height = video.videoHeight;
 				video.play();
 				deferred.resolve(new Webcam(video, canvas));
 			}, 50);
@@ -27,7 +29,7 @@ define([ './jquery-1.7.2.min' ], function(__jQuery) {
 	}
 
 	function getUserMedia(options) {
-		return new jQuery.Deferred(function(deferred) {
+		return new $.Deferred(function(deferred) {
 			var getUserMedia = navigator.webkitGetUserMedia || navigator.getUserMedia;
 			if (!getUserMedia) {
 				deferred.reject("getUserMedia unsupported");
@@ -44,11 +46,11 @@ define([ './jquery-1.7.2.min' ], function(__jQuery) {
 	function Webcam(video, canvas) {
 		this.video = video;
 		this.canvas = canvas;
+		this.ctx2d = this.canvas.getContext("2d");
 	}
 
 	Webcam.prototype.snapshot = function() {
-		this.canvas.getContext("2d").drawImage(this.video, 0, 0, this.canvas.width,
-				this.canvas.height);
+		this.ctx2d.drawImage(this.video, 0, 0, this.canvas.width, this.canvas.height);
 	};
 
 	Webcam.prototype.toDataURL = function(format, quality) {
@@ -61,12 +63,15 @@ define([ './jquery-1.7.2.min' ], function(__jQuery) {
 	};
 
 	Webcam.prototype.getImageData = function() {
-		return this.canvas.getContext("2d").getImageData(0, 0, this.canvas.width,
-				this.canvas.height);
+		return this.ctx2d.getImageData(0, 0, this.canvas.width, this.canvas.height);
 	};
 
 	Webcam.prototype.putImageData = function(data) {
-		return this.canvas.getContext("2d").putImageData(data, 0, 0);
+		return this.ctx2d.putImageData(data, 0, 0);
+	};
+
+	Webcam.prototype.createImageData = function(data) {
+		return this.ctx2d.createImageData(this.canvas.width, this.canvas.height);
 	};
 
 	Webcam.prototype.requestFrameImageData = function(fps, count) {
@@ -75,7 +80,7 @@ define([ './jquery-1.7.2.min' ], function(__jQuery) {
 	};
 
 	Webcam.prototype.requestFrameNotifications = function(fps, count) {
-		var deferred = new jQuery.Deferred();
+		var deferred = new $.Deferred();
 		var ms = 1000 / fps;
 		var frame = 0;
 		var loop = function() {
