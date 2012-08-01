@@ -1,4 +1,4 @@
-require([ './comms', './webcam', './jquery-1.7.2.min' ], function(comms, webcam, __jquery) {
+require([ './comms', './webcam', './jquery' ], function(comms, webcam, $) {
 
 	// create a connection to the server
 	// http://socket.io/
@@ -31,7 +31,7 @@ require([ './comms', './webcam', './jquery-1.7.2.min' ], function(comms, webcam,
 	});
 
 	// request the webcam be made available
-	webcam.create(0.4).done(function(webcam) {
+	webcam.create(128, 96).done(function(webcam) {
 		// show the webcam after it has been scaled onto the local canvas
 		$self.prepend(webcam.canvas);
 
