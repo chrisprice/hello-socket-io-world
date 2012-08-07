@@ -1,9 +1,11 @@
 To run -
 
->npm install
->node app.js
+`>npm install`
+
+`>node server/app.js`
 
 To setup auto-reload -
 
->npm install supervisor -g
->supervisor server/app.js
+`>npm install supervisor -g`
+
+`>supervisor server/app.js`
