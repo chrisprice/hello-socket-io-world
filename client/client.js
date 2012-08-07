@@ -5,40 +5,48 @@ require([ './comms', './webcam', './jquery' ], function(comms, webcam, $) {
 	var socket = comms.connect();
 
 	// very basic UI to deal with incoming messages
-	var $container = $('body');
-	var $list = $('<div/>').appendTo($container);
-	var $self = $('<div/>').appendTo($container);
-
-	var imagesById = {};
-	function lookupImage(id) {
-		return $img = imagesById[id]
-				|| (imagesById[id] = $('<img/>').attr('title', id).appendTo($list));
-	}
+	var $selfId = $('#self-id');
+	var $selfVideo = $('#self-video');
+	var $selfCanvas = $('#self-canvas');
+	var $remoteId = $('#remote-id');
+	var $remoteImage = $('#remote-image');
 
 	// handle incoming messages
 	socket.on('init', function(data) {
-		$self.attr('title', data.id);
+		$selfId.text(data.id);
 	});
 	socket.on('webcam', function(data) {
-		lookupImage(data.id).attr('src', data.data);
+		// new image received (data.data) from another user (data.id)
+		$remoteId.text(data.id);
+		$remoteImage.attr('src', data.data);
 	});
 	socket.on('peer-disconnect', function(data) {
-		lookupImage(data.id).parent().remove();
+		// peer with id=data.id disconnected
 	});
 	socket.on('disconnect', function(data) {
-		$list.empty();
-		imagesById = {};
+		// connection lost
 	});
 
 	// request the webcam be made available
-	webcam.create(128, 96).done(function(webcam) {
-		// show the webcam after it has been scaled onto the local canvas
-		$self.prepend(webcam.canvas);
+	webcam.create().done(function(webcam) {
+		// scale the webcam to save ourselves some processing
+		var size = webcam.getSourceSize();
+		webcam.setSize(size.width * 0.2, size.height * 0.2);
 
-		// request 5 fps indefinitely of imagedata objects
-		// http://www.html5rocks.com/en/tutorials/canvas/imagefilters/
-		webcam.requestFrameImageData(5, 0).progress(function(imageData) {
+		// show the webcam video
+		$selfVideo.append(webcam.video);
+
+		// show the webcam canvas
+		$selfCanvas.append(webcam.canvas);
+
+		// request 5 fps indefinitely
+		setInterval(function() {
+			// grab a video still onto the canvas
+			webcam.snapshot();
+
 			// manipulate the image
+			// http://www.html5rocks.com/en/tutorials/canvas/imagefilters/
+			var imageData = webcam.getImageData();
 			var d = imageData.data;
 			for ( var i = 0, l = d.length; i < l; i += 4) {
 				var r = d[i];
@@ -50,8 +58,10 @@ require([ './comms', './webcam', './jquery' ], function(comms, webcam, $) {
 				var v = 0.2126 * r + 0.7152 * g + 0.0722 * b;
 				d[i] = d[i + 1] = d[i + 2] = Math.round(v / 16) * 16;
 			}
-			// draw the image back onto the canvas
+
+			// draw the manipulated image back onto the canvas
 			webcam.putImageData(imageData);
+
 			// if the comms are online
 			if (socket.socket.connected) {
 				// send a message to the server containing the canvas image as a
@@ -60,7 +70,7 @@ require([ './comms', './webcam', './jquery' ], function(comms, webcam, $) {
 					data : webcam.toDataURL()
 				});
 			}
-		});
+		}, 1000 / 5);
 	});
 
 });

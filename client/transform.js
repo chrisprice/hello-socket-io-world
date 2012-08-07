@@ -34,10 +34,14 @@ define([ './jquery' ], function($) {
 			});
 			return this;
 		},
-		scale : function(f) {
-			$.each(this, function() {
-				applyPrefixed(this, 'transform', 'scale(' + f + ')', true);
-			});
+		scale : function(sx, sy, sz) {
+			$.each(this,
+					function() {
+						sy = sy !== undefined ? sy : sx;
+						sz = sz !== undefined ? sz : sx;
+						applyPrefixed(this, 'transform', 'scale3d(' + sx + ',' + sy + ',' + sz
+								+ ')', true);
+					});
 			return this;
 		},
 		rotateX : function(a) {
@@ -72,7 +76,7 @@ define([ './jquery' ], function($) {
 		},
 		perspective : function(value) {
 			$.each(this, function() {
-				applyPrefixed(this, 'perspective', value.toFixed(0));
+				applyPrefixed(this, 'perspective', Number(value).toFixed(0));
 			});
 			return this;
 		},
@@ -90,39 +94,31 @@ define([ './jquery' ], function($) {
 		}
 	});
 
-	function useMouseRotationControl() {
-		$(document.body).css({
-			position : 'absolute',
-			top : 0,
-			bottom : 0,
-			left : 0,
-			right : 0
-		}).preserve3d().origin('50%', '50%').perspective(100000);
-		var loc = null, rot = {
-			x : 0,
-			y : 0
-		};
-		$(document).mousedown(function(e) {
-			loc = {
-				x : e.pageX,
-				y : e.pageY
-			};
-			e.preventDefault();
-		}).mouseup(function(e) {
-			loc = null;
-		}).mousemove(function(e) {
-			if (!loc) {
-				return;
-			}
-			var xrel = e.pageX - loc.x;
-			var yrel = loc.y - e.pageY;
-			rot.x += yrel * 0.01;
-			rot.y += xrel * 0.01;
-			$(document.body).clearTransform().rotateX(rot.x).rotateY(rot.y);
-		});
+	var lastTime = 0;
+	var vendors = [ 'ms', 'moz', 'webkit', 'o' ];
+	for ( var x = 0; (x < vendors.length) && !window.requestAnimationFrame; ++x) {
+		window.requestAnimationFrame = window[vendors[x] + 'RequestAnimationFrame'];
+		window.cancelAnimationFrame = window[vendors[x] + 'CancelAnimationFrame']
+				|| window[vendors[x] + 'CancelRequestAnimationFrame'];
 	}
 
-	return {
-		useMouseRotationControl : useMouseRotationControl
-	};
+	if (!window.requestAnimationFrame) {
+		window.requestAnimationFrame = function(callback, element) {
+			var currTime = new Date().getTime();
+			var timeToCall = Math.max(0, 16 - (currTime - lastTime));
+			var id = window.setTimeout(function() {
+				callback(currTime + timeToCall);
+			}, timeToCall);
+			lastTime = currTime + timeToCall;
+			return id;
+		};
+	}
+
+	if (!window.cancelAnimationFrame) {
+		window.cancelAnimationFrame = function(id) {
+			clearTimeout(id);
+		};
+	}
+
+	return {};
 });

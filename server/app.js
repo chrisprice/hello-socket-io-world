@@ -12,9 +12,7 @@ app.listen(4951);
 app.use(express.static(__dirname + '/../client'));
 
 app.get('/', function(req, res) {
-	res.render('index.jade', {
-		layout : false
-	});
+	res.redirect('/index.htm');
 });
 
 var clients = [];
