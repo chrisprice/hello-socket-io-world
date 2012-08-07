@@ -1,0 +1,58 @@
+<!doctype html5>
+<html lang="en">
+<head>
+<!-- http://twitter.github.com/bootstrap -->
+<link href="bootstrap/css/bootstrap.css" rel="stylesheet">
+</head>
+<body>
+	<div class="container">
+		<section>
+			<div class="page-header">
+				<h1>
+					Local <small>The output directly from the webcam and
+						manipulated on a canvas</small>
+				</h1>
+			</div>
+			<table class="table">
+				<thead>
+					<tr>
+						<th>ID</th>
+						<th>Video</th>
+						<th>Canvas</th>
+					</tr>
+				</thead>
+				<tbody>
+					<tr>
+						<td id="self-id"></td>
+						<td id="self-video"></td>
+						<td id="self-canvas"></td>
+					</tr>
+				</tbody>
+			</table>
+		</section>
+		<section>
+			<div class="page-header">
+				<h1>
+					Remote <small>The incoming images received from other
+						connected clients</small>
+				</h1>
+			</div>
+			<table class="table">
+				<thead>
+					<tr>
+						<th>ID</th>
+						<th>Feed</th>
+					</tr>
+				</thead>
+				<tbody>
+					<tr>
+						<td id="remote-id"></td>
+						<td><img id="remote-image" /></td>
+					</tr>
+				</tbody>
+			</table>
+		</section>
+	</div>
+	<script type="text/javascript" src="require.js" data-main="client"></script>
+</body>
+</html>
