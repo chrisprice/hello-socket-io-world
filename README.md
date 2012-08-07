@@ -10,4 +10,4 @@ To setup auto-reload -
 
 `>cd server`
 
-`>supervisor server/app.js`
+`>supervisor app.js`
